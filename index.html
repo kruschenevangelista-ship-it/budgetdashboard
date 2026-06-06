@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget Dashboard Mobile Ready</title>
+<style>
+body{font-family:Arial,sans-serif;background:#0f172a;color:#fff;margin:0;padding:15px}
+.container{max-width:1400px;margin:auto}
+.card{background:#1e293b;border-radius:14px;padding:16px;margin-bottom:14px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.title{font-size:2rem;font-weight:800;background:transparent;border:none;color:#fff;flex:1;min-width:200px}
+.btn{background:transparent;border:1px solid #475569;color:#cbd5e1;padding:8px 12px;border-radius:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+input{background:transparent;color:#fff;border:1px solid #64748b;border-radius:8px;padding:8px;width:100%;box-sizing:border-box}
+.big{font-size:2rem;font-weight:800}
+.wrap{height:10px;background:#0f172a;border-radius:999px;overflow:hidden}
+.bar{height:100%;background:#22c55e}
+.item{display:grid;grid-template-columns:2fr 1fr 2fr auto;gap:8px;margin-bottom:8px}
+.del{background:none;border:none;color:#64748b}
+.green{color:#22c55e}.red{color:#ef4444}.yellow{color:#facc15}
+
+@media (max-width:768px){
+  body{padding:10px}
+  .title{font-size:1.5rem;width:100%}
+  .header{display:block}
+  .btn{width:100%;margin-top:8px}
+  .grid{grid-template-columns:1fr}
+  .item{
+    grid-template-columns:1fr;
+    background:#0f172a;
+    padding:10px;
+    border-radius:10px;
+  }
+  .big{font-size:1.6rem;text-align:center}
+  h2{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<div class="header">
+<input class="title" value="Budget Dashboard Ultimate">
+<div>
+<button class="btn">💾 Save Backup</button>
+<button class="btn">📂 Load Backup</button>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>Total Income</h2>
+<div class="big">$5,300.00</div>
+</div>
+
+<div class="card">
+<h2>Giving (10%)</h2>
+<div>Target: $530 | Actual: $500 | Remaining: <span class="green">$30</span> | Used: 94%</div>
+<div class="wrap"><div class="bar" style="width:94%"></div></div>
+<div class="item">
+<input value="Church">
+<input value="500">
+<input value="1st Sunday">
+<button class="del">✕</button>
+</div>
+<button class="btn">➕ Add Item</button>
+</div>
+
+<div class="card">
+<h2>Fixed Expenses (80%)</h2>
+<div>Target: $4,240 | Actual: $4,050 | Remaining: <span class="green">$190</span> | Used: 95%</div>
+<div class="wrap"><div class="bar" style="width:95%"></div></div>
+</div>
+
+<div class="card">
+<h2>Personal (10%)</h2>
+<div>Target: $530 | Actual: $650 | Remaining: <span class="red">-$120</span> | Used: 123%</div>
+<div class="wrap"><div class="bar" style="width:100%;background:#ef4444"></div></div>
+</div>
+</div>
+</body>
+</html>

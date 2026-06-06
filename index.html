@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Budget Dashboard Ultimate v8</title>
+<style>
+body{font-family:Arial,sans-serif;background:#0f172a;color:#fff;padding:20px}
+.container{max-width:1400px;margin:auto}
+.card{background:#1e293b;border-radius:14px;padding:16px;margin:14px 0}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.title{font-size:2rem;font-weight:800;background:transparent;border:none;color:#fff;width:100%}
+.btn{background:transparent;border:1px solid #475569;color:#cbd5e1;padding:8px 12px;border-radius:6px;cursor:pointer}
+.status{color:#22c55e;font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+input{background:transparent;color:white;border:1px solid #64748b;border-radius:6px;padding:6px}
+.amount{width:90px}.pct{width:60px}.name{width:180px}.note{width:220px}
+.big{font-size:2rem;font-weight:800}.value{font-size:1.3rem;font-weight:700}
+.green{color:#22c55e}.red{color:#ef4444}.yellow{color:#facc15}
+table{width:100%;border-collapse:collapse} td{padding:6px;border-bottom:1px solid #334155}
+.add{background:transparent;border:1px solid #475569;color:#cbd5e1;padding:6px 10px;border-radius:6px}
+.del{background:transparent;border:none;color:#64748b;cursor:pointer}
+.wrap{height:10px;background:#0f172a;border-radius:999px;overflow:hidden;margin:8px 0}
+.bar{height:100%}
+.small{color:#cbd5e1}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<input id="title" class="title" value="Budget Dashboard">
+<div>
+<button class="btn" onclick="saveBackup()">💾 Save Backup</button>
+<button class="btn" onclick="loadInput.click()">📂 Load Backup</button>
+<input id="loadInput" type="file" accept=".json" style="display:none">
+<div id="status" class="status">● Saved</div>
+</div>
+</div>
+
+<div class="card">
+<h2>Income</h2>
+<div class="grid">
+<div>Paycheck 1<br><input id="i1" class="amount income" value="2500"></div>
+<div>Paycheck 2<br><input id="i2" class="amount income" value="2500"></div>
+<div>Paycheck 3<br><input id="i3" class="amount income" value="0"></div>
+<div>Paycheck 4<br><input id="i4" class="amount income" value="0"></div>
+<div>Additional<br><input id="extra" class="amount" value="0"></div>
+</div>
+<div id="incomeTotal" class="big"></div>
+<div id="alloc" class="value"></div>
+</div>
+
+<div class="card">
+<h2>Giving <input id="gPct" class="pct" value="10">%</h2>
+<div>Target: <span id="gt"></span> | Actual: <span id="ga"></span> | Remaining: <span id="gr"></span> | Used: <span id="gpu"></span></div>
+<div class="wrap"><div id="gb" class="bar"></div></div>
+<table id="giving"></table><button class="add" onclick="addRow('giving','g')">➕ Add Item</button>
+</div>
+
+<div class="card">
+<h2>Fixed Expenses <input id="nPct" class="pct" value="80">%</h2>
+<div>Target: <span id="nt"></span> | Actual: <span id="na"></span> | Remaining: <span id="nr"></span> | Used: <span id="npu"></span></div>
+<div class="wrap"><div id="nb" class="bar"></div></div>
+<table id="needs"></table><button class="add" onclick="addRow('needs','n')">➕ Add Item</button>
+</div>
+
+<div class="card">
+<h2>Personal <input id="pPct" class="pct" value="10">%</h2>
+<div>Target: <span id="pt"></span> | Actual: <span id="pa"></span> | Remaining: <span id="pr"></span> | Used: <span id="ppu"></span></div>
+<div class="wrap"><div id="pb" class="bar"></div></div>
+<table id="personal"></table><button class="add" onclick="addRow('personal','p')">➕ Add Item</button>
+</div>
+
+<div class="card">
+<h2>Total</h2>
+<div class="grid">
+<div><div class="small">Income</div><div id="ti" class="big"></div></div>
+<div><div class="small">Expenses</div><div id="te" class="value"></div></div>
+<div><div class="small">Remaining Cash</div><div id="cash" class="value"></div></div>
+</div>
+</div>
+</div>
+
+<script>
+const KEY="BudgetDashboardV8";
+const $=id=>document.getElementById(id);
+function money(v){return "$"+(+v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function addRow(tbl,cls,name="New Item",amt=0,note=""){
+ const tr=document.createElement("tr");
+ tr.innerHTML=`<td><input class="name" value="${name}"></td>
+ <td><input class="amount ${cls}" value="${amt}"></td>
+ <td><input class="note" value="${note}" placeholder="Due date / notes"></td>
+ <td><button class="del">✕</button></td>`;
+ $(tbl).appendChild(tr);
+ tr.querySelector(".del").onclick=()=>{tr.remove();update();};
+ tr.querySelectorAll("input").forEach(i=>i.oninput=update);
+}
+
+function sum(c){let t=0;document.querySelectorAll("."+c).forEach(x=>t+=parseFloat(x.value)||0);return t;}
+
+function renderCat(target,actual,t,a,r,u,b){
+ const rem=target-actual,p=(actual/(target||1))*100;
+ $(t).textContent=money(target);
+ $(a).textContent=money(actual);
+ $(r).textContent=(rem>=0?money(rem)+" Remaining":"-"+money(Math.abs(rem))+" Over");
+ $(r).className=rem>=0?"green":"red";
+ $(u).textContent=p.toFixed(0)+"%";
+ const bar=$(b); bar.style.width=Math.min(p,100)+"%";
+ bar.style.background=actual>target?"#ef4444":"#22c55e";
+}
+
+function getData(){
+ const rows=id=>[...document.querySelectorAll("#"+id+" tr")].map(r=>({
+ name:r.querySelector(".name").value,
+ amount:r.querySelector(".amount").value,
+ note:r.querySelector(".note").value
+ }));
+ return {
+ title:title.value,
+ incomes:[i1.value,i2.value,i3.value,i4.value],
+ extra:extra.value,
+ pcts:{g:gPct.value,n:nPct.value,p:pPct.value},
+ giving:rows("giving"),
+ needs:rows("needs"),
+ personal:rows("personal")
+ };
+}
+
+function saveLocal(){
+ localStorage.setItem(KEY,JSON.stringify(getData()));
+ status.textContent="● Saved";
+}
+
+function update(){
+ let income=[i1,i2,i3,i4].reduce((s,x)=>s+(parseFloat(x.value)||0),0)+(parseFloat(extra.value)||0);
+ let gp=+gPct.value||0,np=+nPct.value||0,pp=+pPct.value||0;
+ let pctTotal=gp+np+pp;
+ alloc.textContent="Allocation Total: "+pctTotal+"%";
+ alloc.className="value "+(pctTotal==100?"green":pctTotal>100?"red":"yellow");
+
+ let gtv=income*gp/100, ntv=income*np/100, ptv=income*pp/100;
+ let gaV=sum("g"), naV=sum("n"), paV=sum("p");
+
+ renderCat(gtv,gaV,"gt","ga","gr","gpu","gb");
+ renderCat(ntv,naV,"nt","na","nr","npu","nb");
+ renderCat(ptv,paV,"pt","pa","pr","ppu","pb");
+
+ let exp=gaV+naV+paV, rem=income-exp;
+ incomeTotal.textContent="Total Income: "+money(income);
+ ti.textContent=money(income); te.textContent=money(exp);
+ cash.textContent=money(rem); cash.className="value "+(rem<0?"red":"green");
+ saveLocal();
+}
+
+function loadData(data){
+ title.value=data.title||"Budget Dashboard";
+ [i1.value,i2.value,i3.value,i4.value]=data.incomes||["0","0","0","0"];
+ extra.value=data.extra||0;
+ gPct.value=data.pcts?.g||10; nPct.value=data.pcts?.n||80; pPct.value=data.pcts?.p||10;
+ giving.innerHTML=""; needs.innerHTML=""; personal.innerHTML="";
+ (data.giving||[]).forEach(r=>addRow("giving","g",r.name,r.amount,r.note));
+ (data.needs||[]).forEach(r=>addRow("needs","n",r.name,r.amount,r.note));
+ (data.personal||[]).forEach(r=>addRow("personal","p",r.name,r.amount,r.note));
+ update();
+}
+
+function saveBackup(){
+ const blob=new Blob([JSON.stringify(getData(),null,2)],{type:"application/json"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download=(title.value||"Budget")+"-backup.json";
+ a.click();
+}
+
+loadInput.onchange=e=>{
+ const f=e.target.files[0]; if(!f) return;
+ const r=new FileReader();
+ r.onload=()=>loadData(JSON.parse(r.result));
+ r.readAsText(f);
+};
+
+document.addEventListener("input",update);
+
+const saved=localStorage.getItem(KEY);
+if(saved){
+ loadData(JSON.parse(saved));
+}else{
+ addRow("giving","g","Church",500,"1st Sunday");
+ addRow("needs","n","Rent",2550,"2nd");
+ addRow("needs","n","Car",512.87,"15th");
+ addRow("personal","p","Subscriptions",177.39,"Monthly");
+ update();
+}
+</script>
+</body>
+</html>
